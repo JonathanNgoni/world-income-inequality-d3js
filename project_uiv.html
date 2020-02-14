@@ -1,0 +1,1050 @@
+<!-- Code from d3-graph-gallery.com -->
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+
+<title>World Economic Inequality - D3Js Visualization</title>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<link rel="stylesheet" type="text/css" href="visual.css" />
+<script src="https://d3js.org/queue.v1.min.js"></script>
+<script src="https://d3js.org/topojson.v1.min.js">
+
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-tip/0.7.1/d3-tip.min.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+<style type="text/css">
+    #gini_div,
+    #income_div,
+    #shares_div {
+        margin-bottom: 5px;
+        background-color: whitesmoke;
+        text-align: center;
+    }
+    
+    svg {
+        background-color: white;
+    }
+    
+    text,
+    .axis {
+        font-size: 9px;
+    }
+    
+    .my-legend .legend-title {
+        text-align: left;
+        margin-bottom: 8px;
+        font-weight: bold;
+        font-size: 90%;
+    }
+    
+    .my-legend .legend-scale ul {
+        margin: 0;
+        padding: 0;
+        float: left;
+        list-style: none;
+    }
+    
+    .my-legend .legend-scale ul li {
+        display: block;
+        float: left;
+        width: 50px;
+        margin-bottom: 6px;
+        text-align: center;
+        font-size: 80%;
+        list-style: none;
+    }
+    
+    .my-legend ul.legend-labels li span {
+        display: block;
+        float: left;
+        height: 15px;
+        width: 50px;
+    }
+    
+    .my-legend a {
+        color: #777;
+    }
+</style>
+
+
+<body>
+    <div class="jumbotron">
+        <h1 class="display-4">Visualization of World Income Inequality Data!</h1>
+        <p class="lead">This is a simple D3js project using only D3js to build a dynamic visualization for the world income inequalities data. This project comes as a part of the UIV MoSIG project at ENSIMAG (19/20).
+        </p>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12" id="map"></div>
+        </div>
+        <div class="row">
+            <div class="col-lg-12" id="slidder"></div>
+            <div class='my-legend' style="margin: auto;">
+                <div class='legend-title'>Gini index values by color (percentage)</div>
+                <div class='legend-scale'>
+                    <ul class='legend-labels'>
+                        <li><span style='background:#000000;'></span>NA</li>
+                        <li><span style='background:#ffffcc;'></span>[0-30[</li>
+                        <li><span style='background:#a1dab4;'></span>[30-50[</li>
+                        <li><span style='background:#41b6c4;'></span>[50-60[</li>
+                        <li><span style='background:#225ea8;'></span>[60-100[</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="row">
+            <h1></h1>
+            <!-- Initialize a select button -->
+            <div class="col-lg-2 bg-light">
+                <p>Select a country / region</p>
+                <select id="selectButton"></select>
+            </div>
+            <!-- Create a div where the graph will take place -->
+            <div class="col-lg-10">
+                <div class="row">
+                    <div class="col-lg-6" id="gini_div">
+                        <h4>Gini index value over time</h3>
+                            <div class="" id="gini"></div>
+                    </div>
+                    <div class="col-lg-6" id="income_div">
+                        <h4>Country income average over time</h3>
+                            <div class="" id="incomes"></div>
+                    </div>
+                </div>
+                <div class="row" id="shares_div">
+                    <div class="col-lg-2 "></div>
+                    <div class="col-lg-8">
+                        <h4> Shares of top 1% and bottom 50% of the population</h4>
+                        <div id="shares"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+    </div>
+    <!-- Load d3.js -->
+
+
+    <!-- Load d3.js -->
+    <script src="https://d3js.org/d3.v4.min.js "></script>
+    <!-- Color Scale -->
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js "></script>
+    <script src="https://d3js.org/queue.v1.min.js "></script>
+    <script src="https://d3js.org/topojson.v1.min.js "></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-tip/0.7.1/d3-tip.min.js "></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js " integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN " crossorigin="anonymous "></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js " integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q " crossorigin="anonymous "></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js " integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl " crossorigin="anonymous "></script>
+
+
+    <script>
+        var format = d3.format(",");
+        var margin = {
+                top: 0,
+                right: 0,
+                bottom: 0,
+                left: 0
+            },
+            height = 500 - margin.top - margin.bottom,
+            width = 1000 - margin.left - margin.right;
+        // your jusa man
+
+
+        // Set tooltips
+        var tip = d3.tip()
+            .attr('class', 'd3-tip')
+            .offset([-10, 0])
+            .html(function(d) {
+                return "<strong>Country: </strong><span class='details'>" + d.properties.name + "<br></span>" + "<strong>Population: </strong><span class='details'>" + format(d.population) + "</span>";
+            })
+
+
+
+
+        var color = d3.scaleThreshold()
+            .domain([10000, 100000, 500000, 1000000, 5000000, 10000000, 50000000, 100000000, 500000000, 1500000000])
+            .range(["rgb(247,251,255)", "rgb(222,235,247)", "rgb(198,219,239)", "rgb(158,202,225)", "rgb(107,174,214)", "rgb(66,146,198)", "rgb(33,113,181)", "rgb(8,81,156)", "rgb(8,48,107)", "rgb(3,19,43)"]);
+
+        var path = d3.geoPath();
+        var body = d3.select("body");
+        var div = body.select('#map');
+        var svg = div.append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .append('g')
+            .attr('class', 'map');
+
+        var projection = d3.geoMercator()
+            .scale(150)
+            .translate([width / 2, height / 1.5]);
+
+        var path = d3.geoPath().projection(projection);
+
+        svg.call(tip);
+
+        //Read multiple data using d3.queue
+        d3.queue()
+            .defer(d3.tsv, "data/income_gini.tsv")
+            .defer(d3.tsv, "data/income_averages.tsv")
+            .defer(d3.tsv, "data/count.tsv")
+            .defer(d3.tsv, "data/top_bottom_shares.tsv")
+            .defer(d3.json, "data/worldMap.json")
+            .defer(d3.tsv, "/data/world_population.tsv")
+            .await(function(error, gini, income_avg, countries, top_bottom_shares, data, population) {
+                if (error) throw error;
+                var populationById = {};
+                var countriesById = {};
+
+                population.forEach(function(d) {
+                    populationById[d.id] = +d.population;
+                });
+                countries.forEach((d) => {
+                    countriesById[d.name] = d.code;
+                });
+                console.log(countriesById);
+
+                data.features.forEach(function(d) {
+
+                    d.population = populationById[d.id];
+
+                    d.code = countriesById[d.properties.name];
+
+                });
+
+                //console.log(data);
+                var refAllCountries = svg.append("g")
+                    .attr("class", "countries");
+
+                refAllCountries.selectAll("path")
+                    .data(data.features)
+                    .enter().append("path")
+                    .attr("d", path)
+                    .style("fill", function(d) {
+                        return "rgb(0,0,0)";
+                    })
+                    .style('stroke', 'white')
+                    .style('stroke-width', 1.5)
+                    .style("opacity", 0.8)
+                    // tooltips
+                    .style("stroke", "white")
+                    .style('stroke-width', 0.3)
+                    .on('click', function(d) {
+                        tip.show(d);
+                        updateGiniLineChart(d.code);
+                        updateIncomeCountryLineChart(d.code);
+                        updateSharesChart(d.code);
+
+                        d3.select(this)
+                            .style("opacity", 1)
+                            .style("stroke", "white")
+                            .style("stroke-width", 3);
+                    })
+                    .on('mouseout', function(d) {
+                        tip.hide(d);
+
+                        d3.select(this)
+                            .style("opacity", 0.8)
+                            .style("stroke", "white")
+                            .style("stroke-width", 0.3);
+                    });
+
+                svg.append("path")
+                    .datum(topojson.mesh(data.features, function(a, b) {
+                        return a.id !== b.id;
+                    }))
+                    // .datum(topojson.mesh(data.features, function(a, b) { return a !== b; }))
+                    .attr("class", "names")
+                    .attr("d", path);
+                /*
+  
+                Beginning of the slidder
+  
+                */
+                var formatDateIntoYear = d3.timeFormat("%Y");
+                var formatDate = d3.timeFormat("%b %Y");
+
+                var startDate = new Date("1940-11-01"),
+                    endDate = new Date("2016-04-01");
+
+
+                var bodyone = d3.select("body");
+                var div = bodyone.select('#slidder');
+
+                var hie = 110;
+                var svgone = div
+                    .append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", hie);
+
+                var x = d3.scaleTime()
+                    .domain([startDate, endDate])
+                    .range([0, width])
+                    .clamp(true);
+
+                var slider = svgone.append("g")
+                    .attr("class", "slider")
+                    .attr("transform", "translate(" + margin.left + "," + hie / 2 + ")");
+
+                slider.append("line")
+                    .attr("class", "track")
+                    .attr("x1", x.range()[0])
+                    .attr("x2", x.range()[1])
+                    .select(function() {
+                        return this.parentNode.appendChild(this.cloneNode(true));
+                    })
+                    .attr("class", "track-inset")
+                    .select(function() {
+                        return this.parentNode.appendChild(this.cloneNode(true));
+                    })
+                    .attr("class", "track-overlay")
+                    .call(d3.drag()
+                        .on("start.interrupt", function() {
+                            slider.interrupt();
+                        })
+                        .on("start drag", function(d) {
+                            hue(x.invert(d3.event.x));
+                            // changeColors(formatDateIntoYear(d))
+                        }));
+
+                slider.insert("g", ".track-overlay")
+                    .attr("class", "ticks")
+                    .attr("transform", "translate(0," + 18 + ")")
+                    .selectAll("text")
+                    .data(x.ticks(10))
+                    .enter()
+                    .append("text")
+                    .attr("x", x)
+                    .attr("y", 10)
+                    .attr("text-anchor", "middle")
+                    .text(function(d) {
+                        // changeColors(formatDateIntoYear(d));
+                        return formatDateIntoYear(d);
+                    });
+
+                var label = slider.append("text")
+                    .attr("class", "label")
+                    .attr("text-anchor", "middle")
+                    .text(formatDate(startDate))
+                    .attr("transform", "translate(0," + (-25) + ")")
+
+                var handle = slider.insert("circle", ".track-overlay")
+                    .attr("class", "handle")
+                    .attr("r", 9);
+
+                function hue(h) {
+                    handle.attr("cx", x(h));
+                    label
+                        .attr("x", x(h))
+                        .text(formatDate(h));
+                    changeColors(formatDateIntoYear(h));
+                    //svg.style("background-color", d3.hsl(h/1000000000, 0.8, 0.8));
+                }
+
+
+
+                /*
+      Function for changing the color GNU color.  
+        
+  */
+                function changeColors(date) {
+                    var giniById = {};
+                    gini.forEach((d) => {
+                        if (d.year == date) {
+                            giniById[d.country] = +d.gini_index;
+                        }
+
+
+
+                    });
+                    console.log(giniById);
+                    data.features.forEach((d) => {
+
+
+                        d.gini_index = giniById[d.code];
+                    });
+                    svg.select('g').remove();
+
+                    svg.append('g').attr("class", "countries")
+                        .selectAll("path")
+                        .data(data.features)
+
+                    .enter().append("path")
+                        .attr("d", path)
+                        .style("fill", function(d) {
+                            if (d.gini_index == 0) return "rgb(0,0,0)";
+                            if (d.gini_index > 0 && d.gini_index < 0.30) return "rgb(255,255,204)";
+                            if (d.gini_index >= 0.30 && d.gini_index < 0.5) return "rgb(161,218,180)";
+                            if (d.gini_index >= 0.5 && d.gini_index < 0.6) return "rgb(65,182,196)";
+                            if (d.gini_index >= 0.6) return "rgb(34,94,168)";
+
+                        })
+                        .style('stroke', 'white')
+                        .style('stroke-width', 1.5)
+                        .style("opacity", 0.8)
+                        // tooltips
+                        .style("stroke", "white")
+                        .style('stroke-width', 0.3)
+                        .on('click', function(d) {
+                            tip.show(d);
+
+                            updateGiniLineChart(d.code);
+                            updateIncomeCountryLineChart(d.code);
+                            updateSharesChart(d.code);
+                            d3.select(this)
+                                .style("opacity", 1)
+                                .style("stroke", "white")
+                                .style("stroke-width", 3);
+                        })
+                        .on('mouseout', function(d) {
+                            tip.hide(d);
+
+                            d3.select(this)
+                                .style("opacity", 0.8)
+                                .style("stroke", "white")
+                                .style("stroke-width", 0.3);
+                        });
+
+                    svg.append("path")
+                        .datum(topojson.mesh(data.features, function(a, b) {
+                            return a.id !== b.id;
+                        }))
+                        // .datum(topojson.mesh(data.features, function(a, b) { return a !== b; }))
+                        .attr("class", "names")
+                        .attr("d", path);
+                    console.log(data.features);
+                }
+                // List of countries 
+                var regions = {}
+                var allGroup = d3.map(gini, function(d) {
+                    console.log(d.country);
+                    return (d.country)
+                }).keys()
+
+                // add the options to the button
+                d3.select("#selectButton")
+                    .selectAll("myOptions")
+                    .data(allGroup)
+                    .enter()
+                    .append('option')
+                    .text(function(d) {
+                        return d;
+                    }) // text showed in the menu
+                    .attr("value", function(d) {
+                        return d;
+                    }) // corresponding value returned by the button
+
+                // A color scale: one color for each group
+                var myColor = d3.scaleOrdinal()
+                    .domain(allGroup)
+                    .range(d3.schemeSet2);
+
+                // When the button is changed, run the updateChart function
+                d3.select("#selectButton").on("change", function(d) {
+                    // recover the option that has been chosen
+                    var selectedOption = d3.select(this).property("value")
+                        // run the updateChart function with this selected option
+                    updateGiniLineChart(selectedOption);
+                    updateIncomeCountryLineChart(selectedOption);
+                    updateSharesChart(selectedOption);
+                })
+
+
+
+                /** 
+                //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                Line graph for gini index by country
+                //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                **/
+
+                // set the dimensions and margins of the graph, will be used for both Gini and Income line graphs
+                function dsGiniBasics() {
+
+                    var margin = {
+                            top: 10,
+                            right: 30,
+                            bottom: 30,
+                            left: 60
+                        },
+                        width = 444 - margin.left - margin.right,
+                        height = 220 - margin.top - margin.bottom;
+
+                    return {
+                        margin: margin,
+                        width: width,
+                        height: height,
+                    };
+                }
+
+                function dsGiniLineChart() {
+
+                    // var firstDatasetLineChart = datasetLineChartChosen(group);
+                    var firstDatasetGiniLineChart = gini;
+
+                    var basics = dsGiniBasics();
+
+                    var margin = basics.margin,
+                        width = basics.width,
+                        height = basics.height;
+
+                    // append the svg object to the body of the page
+                    var svg1 = d3.select("#gini")
+                        .append("svg")
+                        .attr("id", "#giniPlot")
+                        .attr("width", width + margin.left + margin.right)
+                        .attr("height", height + margin.top + margin.bottom)
+                        .append("g")
+                        .attr("transform",
+                            "translate(" + margin.left + "," + margin.top + ")")
+                        .attr("width", 200)
+                        .attr("height", 200);
+
+                    $("#giniPlot").css({
+                        top: 200,
+                        left: 200,
+                        position: 'absolute'
+                    });
+
+                    // Add X axis --> it is a date format
+                    var x = d3.scaleLinear()
+                        .domain([d3.min(firstDatasetGiniLineChart, function(d) {
+                            return d.year;
+                        }), d3.max(firstDatasetGiniLineChart, function(d) {
+                            return d.year;
+                        })])
+                        .range([0, width]);
+                    svg1.append("g")
+                        .attr("transform", "translate(0," + height + ")")
+                        .attr("class", "x axis")
+                        .call(d3.axisBottom(x).ticks(10));
+                    // Add Y axis
+                    var y = d3.scaleLinear()
+                        .domain([0, d3.max(firstDatasetGiniLineChart, function(d) {
+                            return +d.gini_index;
+                        })])
+                        .range([height, 0]);
+                    svg1.append("g")
+                        .attr("class", "y axis")
+                        .call(d3.axisLeft(y));
+
+                    var line = svg1
+                        .append("path")
+                        .attr("class", "line_gini")
+                        .datum(firstDatasetGiniLineChart.filter(function(d) {
+                            return d.country == allGroup[10]
+                        }))
+                        .attr("d", d3.line()
+                            .x(function(d) {
+                                return x(d.year)
+                            })
+                            .y(function(d) {
+                                return y(+d.gini_index)
+                            })
+                        )
+                        .attr("stroke", function(d) {
+                            return myColor("valueA")
+                        })
+                        .style("stroke-width", 4)
+                        .style("fill", "none")
+
+                    // Add X axis label:
+                    svg1.append("text")
+                        .attr("text-anchor", "end")
+                        .attr("x", width)
+                        .attr("y", height + margin.top + 20)
+                        .text("Years");
+
+                    // Y axis label:
+                    svg1.append("text")
+                        .attr("text-anchor", "end")
+                        .attr("transform", "rotate(-90)")
+                        .attr("y", -margin.left + 20)
+                        .attr("x", -margin.top)
+                        .text("Gini Index Value")
+                }
+
+                dsGiniLineChart();
+
+                /* ** UPDATE CHART ** */
+
+                /* updates bar chart on request */
+                // A function that update the chart
+                function updateGiniLineChart(selectedGroup) {
+
+                    // Create new data with the selection?
+                    var dataFilter = gini.filter(function(d) {
+                        return d.country == selectedGroup
+                    })
+
+
+                    basics = dsGiniBasics();
+
+                    var margin = basics.margin,
+                        width = basics.width,
+                        height = basics.height,
+                        colorBar = basics.colorBar,
+                        barPadding = basics.barPadding;
+
+                    // Add X axis --> it is a date format
+                    var x = d3.scaleLinear()
+                        .domain([d3.min(dataFilter, function(d) {
+                            return d.year;
+                        }), d3.max(dataFilter, function(d) {
+                            return d.year;
+                        })])
+                        .range([0, width]);
+
+                    // Add Y axis
+                    var y = d3.scaleLinear()
+                        .domain([0, d3.max(dataFilter, function(d) {
+                            return +d.gini_index;
+                        })])
+                        .range([height, 0]);
+
+                    // Select the section we want to apply our changes to
+                    var svg1 = d3.select("#gini").transition();
+
+                    svg1.select(".x.axis") // change the x axis
+                        .duration(750)
+                        .call(d3.axisBottom(x).ticks(10));
+
+                    svg1.select(".y.axis") // change the x axis
+                        .duration(750)
+                        .call(d3.axisLeft(y).ticks(10));
+                    var line = d3.select(".line_gini");
+
+                    line
+                        .datum(dataFilter)
+                        .transition()
+                        .duration(1000)
+                        .attr("d", d3.line()
+                            .x(function(d) {
+                                return x(d.year)
+                            })
+                            .y(function(d) {
+                                return y(+d.gini_index)
+                            })
+                        )
+                        .attr("stroke", function(d) {
+                            return myColor(selectedGroup)
+                        })
+                }
+
+                /** 
+                //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                  Line graph for countries income
+                //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                **/
+
+                function dsIncomeCountryLineChart() {
+
+                    // var firstDatasetLineChart = datasetLineChartChosen(group);
+                    var firstDatasetIncomesLineChart = income_avg;
+
+                    var basics = dsGiniBasics();
+
+                    var margin = basics.margin,
+                        width = basics.width,
+                        height = basics.height;
+
+                    // append the svg object to the body of the page
+                    var svg1 = d3.select("#incomes")
+                        .append("svg")
+                        .attr("id", "#incomesPlot")
+                        .attr("width", width + margin.left + margin.right)
+                        .attr("height", height + margin.top + margin.bottom)
+                        .append("g")
+                        .attr("transform",
+                            "translate(" + margin.left + "," + margin.top + ")")
+                        .attr("width", 200)
+                        .attr("height", 200);
+
+                    $("#incomesPlot").css({
+                        top: 200,
+                        left: 200,
+                        position: 'absolute'
+                    });
+                    // Add X axis --> it is a date format
+                    var x = d3.scaleLinear()
+                        .domain([d3.min(firstDatasetIncomesLineChart, function(d) {
+                            return d.year;
+                        }), d3.max(firstDatasetIncomesLineChart, function(d) {
+                            return d.year;
+                        })])
+                        .range([0, width]);
+
+                    svg1.append("g")
+                        .attr("transform", "translate(0," + height + ")")
+                        .attr("class", "x axis")
+                        .call(d3.axisBottom(x).ticks(10));
+                    // Add Y axis
+                    var y = d3.scaleLinear()
+                        .domain([0, d3.max(firstDatasetIncomesLineChart, function(d) {
+                            return +d.average;
+                        })])
+                        .range([height, 0]);
+                    svg1.append("g")
+                        .attr("class", "y axis")
+                        .call(d3.axisLeft(y));
+
+                    var line = svg1
+                        .append("path")
+                        .attr("class", "line_incomes")
+                        .datum(firstDatasetIncomesLineChart.filter(function(d) {
+                            return d.country == allGroup[10];
+                        }))
+                        .attr("d", d3.line()
+                            .x(function(d) {
+                                return x(d.year)
+                            })
+                            .y(function(d) {
+                                return y(+d.average)
+                            })
+                        )
+                        .attr("stroke", function(d) {
+                            return myColor("valueA")
+                        })
+                        .style("stroke-width", 4)
+                        .style("fill", "none")
+
+
+
+                    // Add X axis label:
+                    svg1.append("text")
+
+                    .attr("text-anchor", "end")
+                        .attr("x", width)
+                        .attr("y", height + margin.top + 20)
+                        .text("Years");
+
+                    // Y axis label:
+                    svg1.append("text")
+                        .attr("text-anchor", "end")
+                        .attr("transform", "rotate(-90)")
+                        .attr("y", -margin.left + 10)
+                        .attr("x", -margin.top)
+                        .text("Country Income Average ($)")
+                }
+
+
+                dsIncomeCountryLineChart();
+
+                function updateIncomeCountryLineChart(selectedGroup) {
+
+                    // Create new data with the selection?
+                    var dataFilter = income_avg.filter(function(d) {
+                        return d.country == selectedGroup
+                    })
+
+
+                    basics = dsGiniBasics();
+
+                    var margin = basics.margin,
+                        width = basics.width,
+                        height = basics.height,
+                        colorBar = basics.colorBar,
+                        barPadding = basics.barPadding;
+
+                    // Add X axis --> it is a date format
+                    var x = d3.scaleLinear()
+                        .domain([d3.min(dataFilter, function(d) {
+                            return d.year;
+                        }), d3.max(dataFilter, function(d) {
+                            return d.year;
+                        })])
+                        .range([0, width]);
+
+                    // Add Y axis
+                    var y = d3.scaleLinear()
+                        .domain([0, d3.max(dataFilter, function(d) {
+                            return +d.average;
+                        })])
+                        .range([height, 0]);
+
+                    // Select the section we want to apply our changes to
+                    var svg1 = d3.select("#incomes").transition();
+
+                    svg1.select(".x.axis") // change the x axis
+                        .duration(750)
+                        .call(d3.axisBottom(x).ticks(10));
+
+                    svg1.select(".y.axis") // change the x axis
+                        .duration(750)
+                        .call(d3.axisLeft(y).ticks(8));
+                    var line = d3.select(".line_incomes");
+
+                    line
+                        .datum(dataFilter)
+                        .transition()
+                        .duration(1000)
+                        .attr("d", d3.line()
+                            .x(function(d) {
+                                return x(d.year)
+                            })
+                            .y(function(d) {
+                                return y(+d.average)
+                            })
+                        )
+                        .attr("stroke", function(d) {
+                            return myColor(selectedGroup)
+                        })
+                }
+
+                /** 
+                //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                  Multi-Line graph for bottom 50%, and top 1% over time
+                //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                **/
+                /* NB: check this code sample: https://bl.ocks.org/d3noob/4db972df5d7efc7d611255d1cc6f3c4f 
+                     in order to draw 2 lines in one graph:
+                        1. line one: share of bottom 50% of the population
+                        2. line two: share of top 10% of the population
+                */
+
+                function dsSharesBasics() {
+                    var margin = {
+                            top: 10,
+                            right: 30,
+                            bottom: 30,
+                            left: 60
+                        },
+                        width = 600 - margin.left - margin.right,
+                        height = 300 - margin.top - margin.bottom;
+
+                    return {
+                        margin: margin,
+                        width: width,
+                        height: height,
+                    };
+                }
+
+                function dsSharesLineChart() {
+
+                    var firstDatasetTopBottomLineChart = top_bottom_shares;
+
+                    var basics = dsSharesBasics();
+
+                    var margin = basics.margin,
+                        width = basics.width,
+                        height = basics.height;
+
+                    // append the svg object to the body of the page
+                    var svg1 = d3.select("#shares")
+                        .append("svg")
+                        .attr("id", "#sharesPlot")
+                        .attr("width", width + margin.left + margin.right)
+                        .attr("height", height + margin.top + margin.bottom)
+                        .append("g")
+                        .attr("transform",
+                            "translate(" + margin.left + "," + margin.top + ")")
+                        .attr("width", 200)
+                        .attr("height", 200);
+
+                    $("#sharesPlot").css({
+                        top: 200,
+                        left: 200,
+                        position: 'absolute'
+                    });
+
+                    // Add X axis --> it is a date format
+                    var x = d3.scaleLinear()
+                        .domain([d3.min(firstDatasetTopBottomLineChart, function(d) {
+                            return d.year;
+                        }), d3.max(firstDatasetTopBottomLineChart, function(d) {
+                            return d.year;
+                        })])
+                        .range([0, width]);
+                    svg1.append("g")
+                        .attr("transform", "translate(0," + height + ")")
+                        .attr("class", "x axis")
+                        .call(d3.axisBottom(x).ticks(10));
+                    // Add Y axis
+                    var y = d3.scaleLinear()
+                        .domain([0, d3.max(firstDatasetTopBottomLineChart, function(d) {
+                            return Math.max(d.top1_share, d.bottom50_share);
+                        })])
+                        .range([height, 0]);
+                    svg1.append("g")
+                        .attr("class", "y axis")
+                        .call(d3.axisLeft(y));
+
+                    var line1 = svg1
+                        .append("path")
+                        .attr("class", "line_top_1")
+                        .datum(firstDatasetTopBottomLineChart.filter(function(d) {
+                            return d.country == allGroup[10]
+                        }))
+                        .attr("d", d3.line()
+                            .x(function(d) {
+                                return x(d.year)
+                            })
+                            .y(function(d) {
+                                return y(+d.top1_share)
+                            })
+                        )
+                        .attr("stroke", function(d) {
+                            return myColor("valueA")
+                        })
+                        .style("stroke-width", 4)
+                        .style("fill", "none")
+
+
+                    var line2 = svg1
+                        .append("path")
+                        .attr("class", "line_bottom_50")
+                        .datum(firstDatasetTopBottomLineChart.filter(function(d) {
+                            return d.country == allGroup[10]
+                        }))
+                        .attr("d", d3.line()
+                            .x(function(d) {
+                                return x(d.year)
+                            })
+                            .y(function(d) {
+                                return y(+d.bottom50_share)
+                            })
+                        )
+                        .attr("stroke", function(d) {
+                            return myColor("valueA")
+                        })
+                        .style("stroke-width", 4)
+                        .style("fill", "none")
+
+
+                    var legend_top = ["Top 1%"]
+                    var legend_bottom = ["Bottom 50"]
+                    var lineLegend1 = svg1.selectAll(".lineLegendUp")
+                        .data(legend_top)
+                        .enter().append("g")
+                        .attr("class", "lineLegendUp")
+                        .attr("transform", function(d, i) {
+                            return "translate(" +
+                                (width - 160) + "," + (i * 20) + ")";
+                        });
+
+                    lineLegend1
+                        .append("text")
+                        .text(function(d) {
+                            return d;
+                        })
+                        .attr("transform", "translate(15,9)");
+                    //align texts with boxes 
+                    lineLegend1.append("rect")
+                        .attr("fill", "gray")
+                        .attr("width", 10)
+                        .attr("height", 10);
+
+                    var lineLegend2 = svg1.selectAll(".lineLegendBottom")
+                        .data(legend_bottom)
+                        .enter()
+                        .append("g")
+                        .attr("class", "lineLegendBottom")
+                        .attr("transform", function(d, i) {
+                            return "translate(" + (width - 100) + "," + (i * 40) + ")";
+                        });
+
+                    lineLegend2.append("text")
+                        .text(function(d) {
+                            return d;
+                        })
+                        .attr("transform", "translate(15,9)");
+
+                    //align texts with boxes
+                    lineLegend2.append("rect")
+                        .attr("fill", "red")
+                        .attr("width", 10)
+                        .attr("height", 10);
+
+                    // Add X axis label: 
+                    svg1.append("text")
+                        .attr("text-anchor", "end")
+                        .attr("x", width)
+                        .attr("y", height + margin.top + 20)
+                        .text("Years");
+                    // Y axis label: 
+                    svg1.append("text")
+                        .attr("text-anchor", "end")
+                        .attr("transform", "rotate(-90)")
+                        .attr("y", -margin.left + 10)
+                        .attr("x", -margin.top).text("Shares of national income")
+                }
+
+
+                dsSharesLineChart()
+
+                function updateSharesChart(selectedGroup) {
+                    // Create new data with the selection?
+                    var dataFilter = top_bottom_shares.filter(function(d) {
+                        return d.country == selectedGroup
+                    })
+
+                    console.log(dataFilter);
+
+                    var basics = dsSharesBasics();
+
+                    var margin = basics.margin,
+                        width = basics.width,
+                        height = basics.height;
+                    // Add X axis --> it is a date format
+                    var x = d3.scaleLinear()
+                        .domain([d3.min(dataFilter, function(d) {
+                            return d.year;
+                        }), d3.max(dataFilter, function(d) {
+                            return d.year;
+                        })])
+                        .range([0, width]);
+
+                    // Add Y axis
+                    var y = d3.scaleLinear()
+                        .domain([0, d3.max(dataFilter, function(d) {
+                            return Math.max(d.top1_share, d.bottom50_share);
+                        })])
+                        .range([height, 0]);
+
+                    // Select the section we want to apply our changes to
+                    var svg3 = d3.select("#shares").transition();
+
+                    svg3.select(".x.axis") // change the x axis
+                        .duration(750)
+                        .call(d3.axisBottom(x).ticks(10));
+
+                    svg3.select(".y.axis") // change the x axis
+                        .duration(750)
+                        .call(d3.axisLeft(y).ticks(8));
+                    var line1 = d3.select(".line_top_1");
+
+                    line1
+                        .datum(dataFilter)
+                        .transition()
+                        .duration(1000)
+                        .attr("d", d3.line()
+                            .x(function(d) {
+                                return x(d.year)
+                            })
+                            .y(function(d) {
+                                return y(+d.top1_share)
+                            })
+                        )
+                        .attr("stroke", "grey");
+
+
+                    var line1 = d3.select(".line_bottom_50");
+
+                    line1
+                        .datum(dataFilter)
+                        .transition()
+                        .duration(1000)
+                        .attr("d", d3.line()
+                            .x(function(d) {
+                                return x(d.year)
+                            })
+                            .y(function(d) {
+                                return y(+d.bottom50_share)
+                            })
+                        )
+                        .attr("stroke", "red")
+                }
+            });
+    </script>
